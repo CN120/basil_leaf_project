@@ -16,7 +16,8 @@ ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
 # print(ret)
 # dec = ret.decode('utf-8')
 # print(dec)
-
+if ser.in_waiting:
+    ser.read(ser.in_waiting)
 
 def calcCoordinates():
     return (random.randint(0,100),random.randint(0,100))
@@ -25,6 +26,7 @@ def calcDropTime():
     time.sleep(3.4)
 
 def main():
+    print("Listening")
     ENC = 'utf-8'   #serial byte encoding spec
     in_message = None
     out_message = None
@@ -38,8 +40,9 @@ def main():
                 elif in_message == b'time?':
                     calcDropTime()
                     ser.write(bytes("drop\n",ENC))
+                    print("now")
                 else:
-                    ser.write(bytes("unknown command\n"),ENC)
+                    ser.write(bytes("unknown command\n",ENC))
     except KeyboardInterrupt:
         print('\nkeyboard interupt -- stopping server')
 
