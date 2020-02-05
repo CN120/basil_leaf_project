@@ -1,29 +1,19 @@
 import serial
 import time
 import random
+import threading
 ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
 # s = serial.Serial(timeout=1, port="/dev/ttyTHS2", baudrate=115200)
 
-# try:
-#     s.open()
-# except:
-#     pass
-# # s.reset_input_buffer()
-# # s.reset_output_buffer()
-# send = "hello\r\n"
-# s.write(bytes(send, 'utf-8'))
-# ret = s.readline()
-# print(ret)
-# dec = ret.decode('utf-8')
-# print(dec)
+
 if ser.in_waiting:
     ser.read(ser.in_waiting)
 
 def calcCoordinates():
-    return (random.randint(0,100),random.randint(0,100))
+    return (random.randint(0,780),random.randint(0,780))
 
-def calcDropTime():
-    time.sleep(3.4)
+def waitForCan():
+    time.sleep(random.randint(1,4))
 
 def main():
     print("Listening")
@@ -38,7 +28,7 @@ def main():
                     out_message = f'{calcCoordinates()}\n'
                     ser.write(bytes(out_message,ENC))
                 elif in_message == b'time?':
-                    calcDropTime()
+                    waitForCan()
                     ser.write(bytes("drop\n",ENC))
                     print("now")
                 else:
