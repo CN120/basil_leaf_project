@@ -111,7 +111,7 @@ def getCoordinates():
 def blockUntilDrop():
     ser.write(b'time?\n')
     ser.timeout=10 #max time will spend waiting
-    in_message = ser.readline()
+    ser.readline()
     ser.timeout = 1
 
 def actionPlaceholder(action="example_action"):
