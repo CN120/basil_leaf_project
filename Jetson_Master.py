@@ -12,14 +12,28 @@ import sys
 #For Leaf Tracking
 from matplotlib import pyplot as plt
 
-DROP_MUTEX = threading.Lock()
-should_drop = 0
-
+########## GLOBALS ##############
+DROP_SIGNAL = threading.Event()
 LEAF_MUTEX = threading.Lock()
 
-
 ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
+##################################
 
+### ---------------------------------------------------------
+### Summary: Convert coordinates from pixel-space to motor step-space
+### Input:  N/A
+### Output: XY of a leaf for stepper motors
+### ---------------------------------------------------------
+def pixelToStep(pix_x, pix_y):
+    pass
+    #shoudl return (converted_x,converted_y)
+
+
+### ---------------------------------------------------------
+### Summary: Thead function, find coordinates of leaves in image
+### Input:  N/A
+### Output: None, Sets should_drop flag
+### ---------------------------------------------------------
 def leafTrack():
     global cx, cy
     cap = cv2.VideoCapture(0)
@@ -53,8 +67,13 @@ def leafTrack():
     cap.release()
     cv2.destroyAllWindows()
 
+
+### ---------------------------------------------------------
+### Summary: Thead function, tracks when cans are in position to drop leaf
+### Input:  N/A
+### Output: None, Sets should_drop flag
+### ---------------------------------------------------------
 def canTrack():
-    global should_drop
     cap = cv2.VideoCapture(0)
     count = 500
     max_x = 500
@@ -70,7 +89,7 @@ def canTrack():
         if circles is not None:
             circles = np.round(circles[0, :]).astype("int")
             count += 1
-            for (x,y,r) in circles: #FInd the circules
+            for (x,y,r) in circles: #Find the circules
                 #Need to set the x threshold (ORIGINAL: )
                 #Offset will be # (need to be added to the last outputs)
                 if x > 50 and x < max_x and y > 150 and y < 300: #only want circles in certain areas
@@ -79,13 +98,11 @@ def canTrack():
                     max_r = r
             #only output if there is circles and we scanned multiple times
             if max_x != 500 and count > 2:
-                DROP_MUTEX.acquire()
                 if max_x < 150:
                     # print("DROP " + str(max_x) + ", "+ str(max_y))
-                    should_drop = 1         ###MUTE
+                    DROP_SIGNAL.set()   #Signal to main thread that can is in drop position
                 else:
-                    should_drop = 0
-                DROP_MUTEX.release()
+                    DROP_SIGNAL.clear() #Clears the drop signal that was set above
                 cv2.circle(gray, (max_x,max_y), max_r, (0,255,0),4)
                 cv2.rectangle(gray, (max_x-5, max_y-5), (max_x+5, max_y+5), (0, 128, 255), -1)
                 max_x = 500
@@ -101,53 +118,68 @@ def canTrack():
 
 
 
-def calcCoordinates():
+### ---------------------------------------------------------
+### Summary: (Will) pop coordinates of next available leaf
+### Input:  N/A
+### Output: XY of a leaf for stepper motors
+### ---------------------------------------------------------
+def getLeaf():
     return (random.randint(0,780),random.randint(0,780))
 
-def waitForCan():
-    global should_drop
-    while True:
-        DROP_MUTEX.acquire()
-        if should_drop==1:
-            should_drop = 0
-            DROP_MUTEX.release()
-            return
-        DROP_MUTEX.release()
 
-def main():
-    print("Listening")
+
+### ---------------------------------------------------------
+### Summary: serves as mainloop control/communication funciton
+### Input:  NA
+### Output: NA
+### ---------------------------------------------------------
+def mainSerial():
+    print("Listening on Serial Port")
     ENC = 'utf-8'   #serial byte encoding spec
+    #variables for storing read, write serial strings
     in_message = None
     out_message = None
+
+    #the try statement allows for graceful shuttdown using ^c (ctrl-c)
     try:
         while True:
             if ser.in_waiting>0:
-                in_message = (ser.readline())[:-1]
+                in_message = (ser.readline())[:-1]  #reads in message droping '\n'
+                
+                #decide type of message recieved
                 if in_message == b'coords?':
-                    out_message = f'{calcCoordinates()}\n'
+                    out_message = f'{getLeaf()}\n'
                     ser.write(bytes(out_message,ENC))
                 elif in_message == b'time?':
-                    waitForCan()
+                    # waitForCan()
+                    DROP_SIGNAL.wait()  # wait indefinately for drop signal
                     ser.write(bytes("drop\n",ENC))
-                    print("now")
+                    print("drop now")
                 else:
                     ser.write(bytes("unknown command\n",ENC))
     except KeyboardInterrupt:
-        print('\nkeyboard interupt -- stopping server')
+        print('\nkeyboard interupt -- Closing Serial Connection')
 
 
 
+#                  _          __                  _   _             
+#                 (_)        / _|                | | (_)            
+#  _ __ ___   __ _ _ _ __   | |_ _   _ _ __   ___| |_ _  ___  _ __  
+# | '_ ` _ \ / _` | | '_ \  |  _| | | | '_ \ / __| __| |/ _ \| '_ \ 
+# | | | | | | (_| | | | | | | | | |_| | | | | (__| |_| | (_) | | | |
+# |_| |_| |_|\__,_|_|_| |_| |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|
+                                                                  
+if __name__ == '__main__':
 
+    #start can_tracking thread
+    can_tracking = threading.Thread(target=canTrack)
+    can_tracking.daemon = True
+    can_tracking.start()
 
+    #consumes any extraneus data in serial bufer
+    if ser.in_waiting:
+        ser.read(ser.in_waiting)
 
-can_tracking = threading.Thread(target=canTrack)
-can_tracking.daemon = True
-can_tracking.start()
-
-
-# s = serial.Serial(timeout=1, port="/dev/ttyTHS2", baudrate=115200)
-
-if ser.in_waiting:
-    ser.read(ser.in_waiting)
-
-main()
+    mainSerial()    #main/serial communication function
+                    #this will act as the main control function for
+                    #the Jetson side of things
