@@ -63,6 +63,7 @@ def canTrack():
     while(True):
         ret, frame = cap.read()
         output = frame.copy()
+        cv2.imshow('video',output)
         gray = cv2.medianBlur(cv2.cvtColor(output, cv2.COLOR_BGR2GRAY),5)    #Take in video
         circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1.4, 50)  #Currently only csv.HOUGH_GRADIENT for circle
         #ensure at least some circles were found
@@ -92,7 +93,7 @@ def canTrack():
                 max_r = 500
                 count = 500
 
-        cv2.imshow('video',gray)   #if we want to see the output
+        # cv2.imshow('video',gray)   #if we want to see the output
         if cv2.waitKey(1)==27:# esc Key
             break
     cap.release()

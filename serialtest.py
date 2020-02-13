@@ -3,13 +3,16 @@ import piplates.MOTORplate as MOTOR
 import threading
 
 ser = serial.Serial("/dev/ttyS0", baudrate = 115200, timeout=1)
-# port = serial.Serial("/dev/AMA0", baudrate = 115200, timeout=2)
 
 #globals for move
 xmax = 780
 ymax = 695
 xcurrpos = 0
 ycurrpos = 0
+
+MOTOR_X = 'B'
+MOTOR_Y = 'A'
+
 
 in_message = None
 out_message = None
@@ -27,7 +30,7 @@ def drop():
 def movey(y):
     global ycurrpos
     yflag = 1
-    MOTOR.stepperOFF(0, 'A')
+    MOTOR.stepperOFF(0, MOTOR_Y)
     newypos = int(y)
 
     if((newypos > ymax) or (newypos < 0)):
@@ -37,10 +40,10 @@ def movey(y):
         print("Current y position is:", ycurrpos, " Moving to:", newypos)
 
     if(newypos > ycurrpos):
-        MOTOR.stepperCONFIG(0, 'A', 'CCW', 'F', 200, 0)
+        MOTOR.stepperCONFIG(0, MOTOR_Y, 'CCW', 'F', 200, 0)
         # print("Turning CCW")
     elif(newypos < ycurrpos):
-        MOTOR.stepperCONFIG(0, 'A', 'CW', 'F', 200, 0)
+        MOTOR.stepperCONFIG(0, MOTOR_Y, 'CW', 'F', 200, 0)
         # print("Turning CW")
     elif(newypos == ycurrpos):
         print("same location")
@@ -49,23 +52,22 @@ def movey(y):
         print("broken")
 
     ysteps = abs(newypos - ycurrpos)
-    MOTOR.stepperMOVE(0, 'A', ysteps)
+    MOTOR.stepperMOVE(0, MOTOR_Y, ysteps)
     while(yflag):
         time.sleep(0.1)
         stat = MOTOR.getINTflag0(0)
         if(stat & 0x10):
             yflag = 0
-    MOTOR.stepperOFF(0, 'A')
+    MOTOR.stepperOFF(0, MOTOR_Y)
     print("Y move complete!")
     ycurrpos = newypos
 
 
 def move(x,y):
-    # y_thread = threading.Thread(target=movey, args=(y,))
-    # y_thread.start()
     global xcurrpos
     xflag = 1
-    MOTOR.stepperOFF(0, 'B')
+    #Reset 
+    MOTOR.stepperOFF(0, MOTOR_X)
     newxpos = int(x)
 
     if((newxpos > xmax) or (newxpos < 0)):
@@ -75,10 +77,10 @@ def move(x,y):
         print("Current x position is:", xcurrpos, " Moving to:", newxpos)
 
     if(newxpos > xcurrpos):
-        MOTOR.stepperCONFIG(0, 'B', 'CCW', 'F', 200, 0)
+        MOTOR.stepperCONFIG(0, MOTOR_X, 'CCW', 'F', 200, 0)
         # print("Turning CCW")
     elif(newxpos < xcurrpos):
-        MOTOR.stepperCONFIG(0, 'B', 'CW', 'F', 200, 0)
+        MOTOR.stepperCONFIG(0, MOTOR_X, 'CW', 'F', 200, 0)
         # print("Turning CW")
     elif(newxpos == xcurrpos):
         print("same location")
@@ -87,16 +89,14 @@ def move(x,y):
         print("broken")
 
     xsteps = abs(newxpos - xcurrpos)
-    MOTOR.stepperMOVE(0, 'B', xsteps)
+    MOTOR.stepperMOVE(0, MOTOR_X, xsteps)
     while(xflag):
         time.sleep(0.1)
         stat = MOTOR.getINTflag0(0)
         if(stat & 0x10):
             xflag = 0
-    MOTOR.stepperOFF(0, 'B')
-    # print("X move complete!")
+    MOTOR.stepperOFF(0, MOTOR_X)
     xcurrpos = newxpos
-    # y_thread.join()
 
     
 
@@ -137,6 +137,8 @@ def test():
     move(0,0)
     move(775,0)
 
+
+#MAIN FUNCTION
 #driver
 try:
     while True:
@@ -147,5 +149,5 @@ except KeyboardInterrupt:
         move(0,0)
     except:
         pass
-    MOTOR.stepperOFF(0, 'B')
-    MOTOR.stepperOFF(0, 'A')
+    MOTOR.stepperOFF(0, MOTOR_X)
+    MOTOR.stepperOFF(0, MOTOR_Y)
