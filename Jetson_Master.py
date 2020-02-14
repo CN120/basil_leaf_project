@@ -10,12 +10,13 @@ import numpy as np
 import sys
 
 #For Leaf Tracking
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
 ########## GLOBALS ##############
 DROP_SIGNAL = threading.Event()
 LEAF_MUTEX = threading.Lock()
 
+leaf_list = []  #will contain coordinates of 
 ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
 ##################################
 
@@ -32,7 +33,7 @@ def pixelToStep(pix_x, pix_y):
 ### ---------------------------------------------------------
 ### Summary: Thead function, find coordinates of leaves in image
 ### Input:  N/A
-### Output: None, Sets should_drop flag
+### Output: None, adds tuples of new leaf coordinates to a list
 ### ---------------------------------------------------------
 def leafTrack():
     global cx, cy
@@ -125,6 +126,14 @@ def canTrack():
 ### ---------------------------------------------------------
 def getLeaf():
     return (random.randint(0,780),random.randint(0,780))
+    # future code below
+    # -------------------
+    # try:
+    #     return leaf_list.pop(0)
+    # except:
+    #     pass
+    #     #leaf list empty, raise warning!
+
 
 
 
