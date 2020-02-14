@@ -14,21 +14,26 @@ import sys
 
 ########## GLOBALS ##############
 DROP_SIGNAL = threading.Event()
-LEAF_MUTEX = threading.Lock()
 
+LEAF_MUTEX = threading.Lock()
 leaf_list = []  #will contain coordinates of 
 ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
 ##################################
 
+
 ### ---------------------------------------------------------
-### Summary: Convert coordinates from pixel-space to motor step-space
+### Summary: Convert coordinates of leaf from pixel-space 
+###          to motor step-space and add to list
 ### Input:  N/A
 ### Output: XY of a leaf for stepper motors
 ### ---------------------------------------------------------
-def pixelToStep(pix_x, pix_y):
+def addLeaf(pix_x, pix_y):
     pass
-    #shoudl return (converted_x,converted_y)
-
+    #convert coords
+    #possibly sort?
+    #Mutex lock
+    #add coords to leaf_list[]
+    #release mutex
 
 ### ---------------------------------------------------------
 ### Summary: Thead function, find coordinates of leaves in image
@@ -57,9 +62,10 @@ def leafTrack():
             ROI = original[y:y+h, x:x+w]
             r = 5
             t = 1
-            # Center coordinates (cx, cy)
+            # Center coordinates inside of whole image(cx, cy)
             cx = int(w / 2)
             cy = int(h / 2)
+            addLeaf()
             #
             #cv2.circle(ROI, (cx, cy), r, (255, 0, 0), thickness=t)
             #cv2.imshow("identifiedLeaf", ROI)
@@ -133,6 +139,7 @@ def getLeaf():
     # except:
     #     pass
     #     #leaf list empty, raise warning!
+    #     #Signal for new leaves
 
 
 
