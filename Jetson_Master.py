@@ -82,14 +82,13 @@ def leafTrack():
 ### Restraints: Clean backgrounf, noisy background will affect HoughCircles performance
 ### ---------------------------------------------------------
 def canTrack():
-    cap = cv2.VideoCapture(2)
+    cap = cv2.VideoCapture(-1)      #Get the last inserted camera
     count = 500
     max_x = 500
     max_y = 500
     max_r = 500
     while(True):
         ret, output = cap.read()
-        # cv2.imshow('video',output)
         gray = cv2.medianBlur(cv2.cvtColor(output, cv2.COLOR_BGR2GRAY),5)    #Take in video
         #HoughCircles can't take high resoultion images
         #need to use blur to lower the resolution 
@@ -109,7 +108,7 @@ def canTrack():
             #only output if there is circles and we scanned multiple times
             if max_x != 500 and count > 2:
                 if max_x < 150:
-                    print("DROP " + str(max_x) + ", "+ str(max_y))  #For debugging
+                    # print("DROP " + str(max_x) + ", "+ str(max_y))  #For debugging
                     DROP_SIGNAL.set()   #Signal to main thread that can is in drop position
                 else:
                     DROP_SIGNAL.clear() #Clears the drop signal that was set above
