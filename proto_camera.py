@@ -21,18 +21,21 @@ count = 500
 max_x = 500
 max_y = 500
 max_r = 500
+counter = 0
 while(True):
-    # print("GO")
+    print("GO ", counter)
+    counter += 1
     ret, gray = cap.read()
     gray = cv2.medianBlur(cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY),5)    #Take in video
-    scale_percent = 20 # percent of original size
-    width = int(gray.shape[1] * scale_percent / 100)
-    height = int(gray.shape[0] * scale_percent / 100)
-    dim = (width, height)
-    gray = cv2.resize(gray, dim, interpolation = cv2.INTER_LANCZOS4)
-    # gray = cv2.GaussianBlur(gray, (15,15), 0)
-    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1.5, 50)  #Currently only csv.HOUGH_GRADIENT for circle
-    #ensure at least some circles were found
+    # scale_percent = 50 # percent of original size
+    # width = int(gray.shape[1] * scale_percent / 100)
+    # height = int(gray.shape[0] * scale_percent / 100)
+    # dim = (width, height)
+    # gray = cv2.resize(gray, dim, interpolation = cv2.INTER_AREA)
+    gray = cv2.GaussianBlur(gray, (15,15), 0)
+
+    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1.4, 50)  #Currently only csv.HOUGH_GRADIENT for circle
+    # ensure at least some circles were found
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
         count += 1
@@ -54,7 +57,7 @@ while(True):
             max_r = 500
             count = 500
 
-    cv2.imshow('video',gray)
+    # cv2.imshow('video',gray)
     if cv2.waitKey(1)==27:# esc Key
         break
 cap.release()

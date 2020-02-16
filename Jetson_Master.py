@@ -42,7 +42,7 @@ def addLeaf(pix_x, pix_y):
 ### ---------------------------------------------------------
 def leafTrack():
     global cx, cy
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     while(True):
         ret, frame = cap.read()
         original = frame.copy()
@@ -79,18 +79,21 @@ def leafTrack():
 ### Summary: Thead function, tracks when cans are in position to drop leaf
 ### Input:  N/A
 ### Output: None, Sets should_drop flag
+### Restraints: Clean backgrounf, noisy background will affect HoughCircles performance
 ### ---------------------------------------------------------
 def canTrack():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
     count = 500
     max_x = 500
     max_y = 500
     max_r = 500
     while(True):
-        ret, frame = cap.read()
-        output = frame.copy()
-        cv2.imshow('video',output)
+        ret, output = cap.read()
+        # cv2.imshow('video',output)
         gray = cv2.medianBlur(cv2.cvtColor(output, cv2.COLOR_BGR2GRAY),5)    #Take in video
+        #HoughCircles can't take high resoultion images
+        #need to use blur to lower the resolution 
+        gray = cv2.GaussianBlur(gray, (5,5), 0)
         circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1.4, 50)  #Currently only csv.HOUGH_GRADIENT for circle
         #ensure at least some circles were found
         if circles is not None:
@@ -106,7 +109,7 @@ def canTrack():
             #only output if there is circles and we scanned multiple times
             if max_x != 500 and count > 2:
                 if max_x < 150:
-                    # print("DROP " + str(max_x) + ", "+ str(max_y))
+                    print("DROP " + str(max_x) + ", "+ str(max_y))  #For debugging
                     DROP_SIGNAL.set()   #Signal to main thread that can is in drop position
                 else:
                     DROP_SIGNAL.clear() #Clears the drop signal that was set above
@@ -117,7 +120,7 @@ def canTrack():
                 max_r = 500
                 count = 500
 
-        # cv2.imshow('video',gray)   #if we want to see the output
+        cv2.imshow('video',gray)   #if we want to see the output
         if cv2.waitKey(1)==27:# esc Key
             break
     cap.release()
