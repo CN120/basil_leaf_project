@@ -12,7 +12,7 @@ import cv2
 from matplotlib import pyplot as plt
 
 # If VideoCapture and frame.copy fail, try unplugging and replugging the camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(-1)
 print("Press ESC to end program")
 
 while(True):
