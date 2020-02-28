@@ -16,7 +16,7 @@ import sys
 DROP_SIGNAL = threading.Event()
 
 LEAF_MUTEX = threading.Lock()
-leaf_list = []  #will contain coordinates of 
+good_leaves = []  #will contain coordinates of good leaves
 ser = serial.Serial(timeout=None, port="/dev/ttyTHS1", baudrate=115200)
 ##################################
 
@@ -40,7 +40,7 @@ def addLeaf(pix_x, pix_y):
     #convert coords
     #possibly sort?
     #Mutex lock
-    #add coords to leaf_list[]
+    #add coords to good_leaves[]
     #release mutex
 
 ### ---------------------------------------------------------
@@ -49,6 +49,64 @@ def addLeaf(pix_x, pix_y):
 ### Output: None, adds tuples of new leaf coordinates to a list
 ### ---------------------------------------------------------
 def leafTrack():
+    global good_leaves
+    cap = cv2.VideoCapture(2)
+    print("Press ESC to end program")
+
+    ret, frame = cap.read()
+    # original = frame.copy()
+    # output = frame.copy()
+    sample = np.array(frame)
+    gray = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray,(5,5),cv2.BORDER_DEFAULT)
+    canny = cv2.Canny(blurred,50,100)
+    kernel = np.ones((3,3),np.uint8)
+    dilate = cv2.dilate(canny, kernel, iterations=1)
+    cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts)==2 else cnts[1]
+
+    print("Number of leaves: ", len(cnts))
+    LEAF_MUTEX.acquire()
+    for c in cnts:
+        x,y,w,h = cv2.boundingRect(c)
+        print("---------------wow a leaf: ", x,y,w,h)
+        cv2.rectangle(sample, (x,y), (x+w, y+h), (36,255,12), 2)
+        # ROI = original[y:y+h, x:x+w]
+        r = 5
+        t = 1
+        cx = int(w / 2)
+        cy = int(h / 2)
+        print(pixelsToInches(x+cx),pixelsToInches(y+cy))
+        cv2.circle(sample, (x+cx, y+cy), r, (255, 0, 0), thickness=t)
+        cv2.imshow("identifiedLeaf", sample)
+
+        # Run extraction and ML
+        # should return bool if leaf is good or not good
+        good = True
+        if(good):
+            #insert into goodleaves
+            good_leaves.append((cx, cy))
+        else:
+            pass
+            # discardLeaves()
+    good_leaves.sort()
+    LEAF_MUTEX.release()
+
+        
+    while True:
+        if cv2.waitKey(1)==27:  # esc key
+                break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+### ---------------------------------------------------------
+### Summary: OUTDATED_Thead function, find coordinates of leaves in image
+###          this function is for a constant video feed
+### Input:  N/A
+### Output: None, adds tuples of new leaf coordinates to a list
+### ---------------------------------------------------------
+def OUTDATED_leafTrack():
     # global cx, cy
     # cap = cv2.VideoCapture(2)
     # while(True):
@@ -139,12 +197,13 @@ def leafTrack():
 def canTrack():
     limit = 600
     threshold = 50
-    cap = cv2.VideoCapture(0)      #Get the last inserted camera
+    cap = cv2.VideoCapture(2)      #Get the last inserted camera
     max_x = limit
     max_y = limit
     max_r = limit
     while(True):
         ret, output = cap.read()
+        output = output[150:350]
         # gray = cv2.medianBlur(cv2.cvtColor(output, cv2.COLOR_BGR2GRAY),5)    #Take in video
         #HoughCircles can't take high resoultion images
         #need to use blur to lower the resolution 
@@ -156,7 +215,7 @@ def canTrack():
             for (x,y,r) in circles: #Find the circules
                 #Need to set the x threshold (ORIGINAL: )
                 #Offset will be # (need to be added to the last outputs)
-                if x > threshold and x < max_x and y > 150 and y < 300: #only want circles in certain areas
+                if x > threshold and x != max_x:# and y > 0 and y < 400: #only want circles in certain areas
                     max_x = x
                     max_y = y
                     max_r = r
@@ -165,13 +224,17 @@ def canTrack():
                 if max_x < threshold+100:
                     print("DROP " + str(max_x) + ", "+ str(max_y))  #For debugging
                     DROP_SIGNAL.set()   #Signal to main thread that can is in drop position
+                    max_x = limit
+                    max_y = limit
+                    max_r = limit
                 else:
                     DROP_SIGNAL.clear() #Clears the drop signal that was set above
                 cv2.circle(gray, (max_x,max_y), max_r, (0,255,0),4)
                 cv2.rectangle(gray, (max_x-5, max_y-5), (max_x+5, max_y+5), (0, 128, 255), -1)
-                max_x = limit
-                max_y = limit
-                max_r = limit
+        else:
+            max_x = limit
+            max_y = limit
+            max_r = limit
 
         cv2.imshow('video',gray)   #if we want to see the output
         if cv2.waitKey(1)==27:# esc Key
@@ -191,7 +254,7 @@ def getLeaf():
     # future code below
     # -------------------
     # try:
-    #     return leaf_list.pop(0)
+    #     return good_leaves.pop(0)
     # except:
     #     pass
     #     #leaf list empty, raise warning!
@@ -244,9 +307,9 @@ def mainLoop():
 if __name__ == '__main__':
 
     #start can_tracking thread
-    can_tracking = threading.Thread(target=canTrack)
-    can_tracking.daemon = True
-    can_tracking.start()
+    # can_tracking = threading.Thread(target=canTrack)
+    # can_tracking.daemon = True
+    # can_tracking.start()
 
     
     leaf_tracking = threading.Thread(target=leafTrack)
