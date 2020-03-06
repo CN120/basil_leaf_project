@@ -51,9 +51,13 @@ def addLeaf(pix_x, pix_y):
 def leafTrack():
     global good_leaves
     cap = cv2.VideoCapture(2)
+    # cap.set(3,1280) #set reselution width
+    # cap.set(4,720)  #set resolution height
+    cap.set(5,5)   #set frames per second
     print("Press ESC to end program")
 
     ret, frame = cap.read()
+    assert ret
     # original = frame.copy()
     # output = frame.copy()
     sample = np.array(frame)
@@ -78,7 +82,7 @@ def leafTrack():
         cy = int(h / 2)
         print(pixelsToInches(x+cx),pixelsToInches(y+cy))
         cv2.circle(sample, (x+cx, y+cy), r, (255, 0, 0), thickness=t)
-        cv2.imshow("identifiedLeaf", sample)
+        # cv2.imshow("identifiedLeaf", sample)
 
         # Run extraction and ML
         # should return bool if leaf is good or not good
@@ -146,9 +150,9 @@ def OUTDATED_leafTrack():
 
     while(True):
         ret, frame = cap.read()
-
-        original = frame.copy()
-        output = frame.copy()
+        assert ret
+        # original = frame.copy()
+        # output = frame.copy()
 
         sample = np.array(frame)
         gray = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
@@ -169,15 +173,15 @@ def OUTDATED_leafTrack():
             cy = int(h / 2)
             print(pixelsToInches(x+cx),pixelsToInches(y+cy))
             cv2.circle(sample, (x+cx, y+cy), r, (255, 0, 0), thickness=t)
-            cv2.imshow("identifiedLeaf", sample)
+            # cv2.imshow("identifiedLeaf", sample)
         
         # cv2.rectangle(sample, (640,300), (640, 350), (255,255,12), 2)
         # cv2.rectangle(sample, (0,300), (0, 350), (255,255,12), 2)
-        cv2.imshow("identifiedLeaf", sample)
+        # cv2.imshow("identifiedLeaf", sample)
         #cv2.imshow("croppedimg", croppedimg)
         #cv2.imwrite("croppedimg.png", croppedimg)
 
-        #cv2.imshow('video', output)
+        # cv2.imshow('video', output)
         #cv2.imwrite("screen.png", output)
         #break
         if cv2.waitKey(1)==27:  # esc key
@@ -197,12 +201,16 @@ def OUTDATED_leafTrack():
 def canTrack():
     limit = 600
     threshold = 50
-    cap = cv2.VideoCapture(2)      #Get the last inserted camera
+    cap = cv2.VideoCapture(0)      #Get the last inserted camera
+    # cap.set(3,1280) #set reselution width
+    # cap.set(4,720)  #set resolution height
+    cap.set(5,20)   #set frames per second
     max_x = limit
     max_y = limit
     max_r = limit
     while(True):
         ret, output = cap.read()
+        assert ret
         output = output[150:350]
         # gray = cv2.medianBlur(cv2.cvtColor(output, cv2.COLOR_BGR2GRAY),5)    #Take in video
         #HoughCircles can't take high resoultion images
@@ -215,7 +223,7 @@ def canTrack():
             for (x,y,r) in circles: #Find the circules
                 #Need to set the x threshold (ORIGINAL: )
                 #Offset will be # (need to be added to the last outputs)
-                if x > threshold and x != max_x:# and y > 0 and y < 400: #only want circles in certain areas
+                if x > threshold and y > 0 and y < 400: #only want circles in certain areas
                     max_x = x
                     max_y = y
                     max_r = r
@@ -235,8 +243,8 @@ def canTrack():
             max_x = limit
             max_y = limit
             max_r = limit
-
-        cv2.imshow('video',gray)   #if we want to see the output
+        # print("Can is running")
+        # cv2.imshow('video',gray)   #if we want to see the output
         if cv2.waitKey(1)==27:# esc Key
             break
     cap.release()
@@ -307,12 +315,13 @@ def mainLoop():
 if __name__ == '__main__':
 
     #start can_tracking thread
-    # can_tracking = threading.Thread(target=canTrack)
-    # can_tracking.daemon = True
-    # can_tracking.start()
+    can_tracking = threading.Thread(target=canTrack)
+    can_tracking.daemon = True
+    can_tracking.start()
 
-    
-    leaf_tracking = threading.Thread(target=leafTrack)
+    # time.sleep(1)
+
+    leaf_tracking = threading.Thread(target=OUTDATED_leafTrack)
     leaf_tracking.daemon = True
     leaf_tracking.start()
 
